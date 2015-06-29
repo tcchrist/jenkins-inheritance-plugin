@@ -280,13 +280,13 @@ public class TestInheritanceMain extends HudsonTestCase {
 			InheritanceProject p = (InheritanceProject) item;
 			for (AbstractProjectReference ref : p.getParentReferences()) {
 				assertEquals(
-						"References not updated properly when renaming",
+						"Parent References not updated properly when renaming",
 						"parent-renamed", ref.getName()
 				);
 			}
 			for (AbstractProjectReference ref : p.getCompatibleProjects()) {
 				assertEquals(
-						"References not updated properly when renaming",
+						"Compatible References not updated properly when renaming",
 						"parent-renamed", ref.getName()
 				);
 			}
@@ -296,13 +296,12 @@ public class TestInheritanceMain extends HudsonTestCase {
 				"Renaming caused reference inconsistency",
 				child.project.getParentProjects().contains(it)
 		);
-		
+
 		printInfo("Testing ID & versioning properties...");
 		assertEquals(0, parent.project.getVersionIDs().size());
 		assertNull(parent.project.getLatestVersion());
 		assertEquals(0, parent.project.getAllInheritedVersionsList().size());
-		
-		
+
 		printInfo("Checking SVG details...");
 		assertStringContains("The SVG details should contain the number" +
 				" of build steps", parent.project.getSVGDetail(), "0 build steps");

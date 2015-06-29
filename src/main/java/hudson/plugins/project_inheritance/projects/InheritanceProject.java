@@ -815,39 +815,52 @@ public class InheritanceProject	extends Project<InheritanceProject, InheritanceB
 		//And at the very end, we notify the PCE about our changes
 		ProjectCreationEngine.instance.notifyProjectChange(this);
 	}
-
+/*
 	@Override
 	public void movedTo(DirectlyModifiableTopLevelItemGroup destination, AbstractItem newItem, File destDir)
 	throws IOException {
 		String oldName = this.getFullName();
-		InheritanceProject newProject = (InheritanceProject) newItem;
 		super.movedTo(destination, newItem, destDir);
-		String newName = newItem.getFullName();
-System.out.println("[MOVEDTO] " + oldName + " a " + newName);
-		clearBuffers(null);
+
+		InheritanceProject newProject = (InheritanceProject) newItem;
+		String newName = newProject.getFullName();
+System.out.println("[MOVEDTO] [FROM]" + oldName + " [TO] " + newName);
+System.out.println("[MOVEDTO] [NEW_PROJECT] " + newProject.getFullName() + " " + newName);
+clearBuffers(null);
+clearBuffers(newProject);
 		//And then fixing all named references
-		for (InheritanceProject p : this.getProjectsMap().values()) {
-			for (AbstractProjectReference ref : p.getParentReferences()) {
+		for (InheritanceProject p : newProject.getProjectsMap().values()) {
+System.out.println("\n[MOVEDTO] [EVALUATING] " + p.getFullName());
+clearBuffers(p);
+			for (AbstractProjectReference ref : p.parentReferences) {
+
 				if (ref.getName().equals(oldName)) {
-System.out.println("[MOVEDTO] PARENT " + ref.getName() + " " + newName);
-					ref.switchProject(newName);
+System.out.println("\t[MOVEDTO] [PARENT_REFERENCE] " + ref.getName() + " [TO] " + newName);
+					ref.switchProject(newProject);
+System.out.println("\t[MOVEDTO] [PARENT_REFERENCE] ---> " + ref.getName());
+					p.save();
+					clearBuffers(null);
+					ProjectCreationEngine.instance.notifyProjectChange(p);
 				}
 			}
 			for (AbstractProjectReference ref : p.compatibleProjects) {
 				if (ref.getName().equals(oldName)) {
-System.out.println("[MOVEDTO] COMPATIBLE " + ref.getName() + " " + newName);
-					ref.switchProject(newName);
+System.out.println("\t[MOVEDTO] [COMPATIBLE_PROJECT] " + ref.getName() + " [TO] " + newName);
+					ref.switchProject(newProject);
+					//clearBuffers(p);
+					//p.save();
+					//ProjectCreationEngine.instance.notifyProjectChange(p);
 				}
 			}
-			p.save();
-			clearBuffers(p);
-			ProjectCreationEngine.instance.notifyProjectChange(p);
+			clearBuffers(null);
+			ProjectCreationEngine.instance.notifyProjectChange(newProject);
 		}
-		this.save();
-		clearBuffers(this);
-		ProjectCreationEngine.instance.notifyProjectChange(this);
+		newProject.save();
+		clearBuffers(null);
+		ProjectCreationEngine.instance.notifyProjectChange(newProject);
+		clearBuffers(null);
 	}
-
+*/
 /*
 	@Override
 	public void renameTo(String newName) throws IOException {
@@ -870,6 +883,7 @@ System.out.println("Renaming... " + this.name + " a " + newName + " : " + oldNam
 
 		//Executing the rename
 		super.renameTo(newName);
+		String newFullName = this.getFullName();
 		
 		//This means, that we need to force a refresh various buffers
 		clearBuffers(this);
@@ -877,18 +891,37 @@ System.out.println("Renaming... " + this.name + " a " + newName + " : " + oldNam
 		//And then fixing all named references
 		for (InheritanceProject p : getProjectsMap().values()) {
 			for (AbstractProjectReference ref : p.getParentReferences()) {
-				if (ref.getName().equals(oldName)) {
+				if (ref.getName().equals(newFullName)) {
 					ref.switchProject(this);
 				}
 			}
 			for (AbstractProjectReference ref : p.compatibleProjects) {
-				if (ref.getName().equals(oldName)) {
+				if (ref.getName().equals(newFullName)) {
 					ref.switchProject(this);
 				}
 			}
 		}
 	}
 */
+
+	protected boolean switchProject(String oldFullName, String newFullName) {
+		boolean changed = false;
+System.out.println("\n[MOVEDTO] [EVALUATING] " + this.getFullName() + " " + oldFullName + " " + newFullName);
+		clearBuffers(this);
+		for (AbstractProjectReference ref : parentReferences) {
+			if (ref.getName().equals(oldFullName)) {
+				ref.switchProject(newFullName);
+				changed = true;
+			}
+		}
+		for (AbstractProjectReference ref : compatibleProjects) {
+			if (ref.getName().equals(oldFullName)) {
+				ref.switchProject(newFullName);
+				changed = true;
+			}
+		}
+		return changed;
+	}
 
 	/**
 	 * Adds the given {@link ProjectReference} as a parent to this node.
