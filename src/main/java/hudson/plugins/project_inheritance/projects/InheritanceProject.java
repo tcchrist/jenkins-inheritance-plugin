@@ -131,6 +131,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -187,7 +188,7 @@ public class InheritanceProject	extends Project<InheritanceProject, InheritanceB
 			InheritanceProject.class.toString()
 	);
 
-	private static ReentrantLock globalProjectLock = new ReentrantLock();
+	private static ReentrantReadWriteLock globalProjectLock = new ReentrantReadWriteLock();
 
 	// === NESTED CLASS AND ENUM DEFINITIONS ===
 
@@ -603,7 +604,12 @@ public class InheritanceProject	extends Project<InheritanceProject, InheritanceB
 		// - this.getPublishersList() --> SYNCHRONIZED
 
 		//Calling the super implementation; will ultimately call submit()
-		super.doConfigSubmit(req, rsp);
+		globalProjectLock.writeLock().lock();
+		try {
+			super.doConfigSubmit(req, rsp);
+		} finally {
+			globalProjectLock.writeLock().unlock();
+		}
 	}
 
 	/**
@@ -712,16 +718,21 @@ public class InheritanceProject	extends Project<InheritanceProject, InheritanceB
 			throw new IOException(msg);
 		}
 
-		//Instruct the parent to update us
-		super.updateByXml(source);
-		//Then, save a new version
+		globalProjectLock.writeLock().lock();
+		try {
+			//Instruct the parent to update us
+			super.updateByXml(source);
+			//Then, save a new version
 
-		clearBuffers(this);
-		this.dumpConfigToNewVersion("New version uploaded as XML via API/CLI");
-		clearBuffers(this);
+			clearBuffers(this);
+			this.dumpConfigToNewVersion("New version uploaded as XML via API/CLI");
+			clearBuffers(this);
 
-		//Notify the PCE about our changes
-		ProjectCreationEngine.instance.notifyProjectChange(this);
+			//Notify the PCE about our changes
+			ProjectCreationEngine.instance.notifyProjectChange(this);
+		} finally {
+			globalProjectLock.writeLock().unlock();
+		}
 	}
 
 	@RequirePOST
@@ -1014,11 +1025,11 @@ public class InheritanceProject	extends Project<InheritanceProject, InheritanceB
 	protected void buildDependencyGraph(DependencyGraph graph) {
 		//Fetch the global lock of all projects
 		//TODO: Use an interruptible lock here?
-		globalProjectLock.lock();
+		globalProjectLock.readLock().lock();
 		try {
 			super.buildDependencyGraph(graph);
 		} finally {
-			globalProjectLock.unlock();
+			globalProjectLock.readLock().unlock();
 		}
 	}
 

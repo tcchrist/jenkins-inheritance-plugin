@@ -1,19 +1,19 @@
 /**
  * Copyright (c) 2011-2013, Intel Mobile Communications GmbH
- * 
- * 
+ *
+ *
  * This file is part of the Inheritance plug-in for Jenkins.
- * 
+ *
  * The Inheritance plug-in is free software: you can redistribute it
  * and/or modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation in version 3
  * of the License
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -59,18 +59,18 @@ import org.kohsuke.stapler.StaplerRequest;
  * This class offers a few helper functions to facilitate correct
  * inheritance and versioning of the various types of fields of Jenkins
  * projects.
- * 
+ *
  * @author Martin Schroeder
  *
  * @param <T> the target type of the field this helper is written for.
  */
 public abstract class InheritanceGovernor<T> {
 	public static final Pattern runUriRegExp = Pattern.compile(".*/job/[^/]+/[0-9]+/.*");
-	
+
 	public final String fieldName;
 	public final SELECTOR orderMode;
 	public final InheritanceProject caller;
-	
+
 	/**
 	 * {@link Saveable} that doesn't save anything.
 	 * @since 1.301.
@@ -78,15 +78,15 @@ public abstract class InheritanceGovernor<T> {
 	static Saveable NOOP = new Saveable() {
 		public void save() throws IOException {}
 	};
-	
-	
-	
+
+
+
 	public InheritanceGovernor(String field, SELECTOR order, InheritanceProject caller) {
 		this.fieldName = field;
 		this.orderMode = order;
 		this.caller = caller;
 	}
-	
+
 	/**
 	 * This function should take an arbitrary Object o and cast it directly
 	 * to T if possible; or return null if o is incompatible.
@@ -94,15 +94,15 @@ public abstract class InheritanceGovernor<T> {
 	 * It <b>must not</b> return a copy. It must cast directly or return null.
 	 * This property will be checked by this class and a nasty exception
 	 * will be thrown by this class if you violate it.
-	 * 
+	 *
 	 * @param o the object to be cast directly without copying.
 	 * @return o recast as the type T, if possible.
 	 */
 	protected abstract T castToDestinationType(Object o);
-	
+
 	public abstract T getRawField(InheritanceProject ip);
-	
-	
+
+
 	private final T noCopyCast(Object o) {
 		T cast = castToDestinationType(o);
 		if (cast != null && cast != o) {
@@ -110,7 +110,7 @@ public abstract class InheritanceGovernor<T> {
 		}
 		return cast;
 	}
-	
+
 	public T getVersionedField(InheritanceProject ip, Long version) {
 		//Check sanity of version store for ip
 		if (ip.getVersionedObjectStore().size() == 0) {
@@ -122,7 +122,7 @@ public abstract class InheritanceGovernor<T> {
 		if (map == null || map.isEmpty()) {
 			return this.getRawField(ip);
 		}
-		
+
 		//Fetch field from map; do note that even saved fields can be null!
 		if (map.containsKey(fieldName)) {
 			//Field exists, so if it is set to null; null is a valid value
@@ -141,7 +141,7 @@ public abstract class InheritanceGovernor<T> {
 	/**
 	 * This method moves through as much of the inheritance tree as is necessary
 	 * to retrieve the desired field as defined by this class.
-	 * 
+	 *
 	 * @param root the project from which to start derivation.
 	 * @param mode the mode of inheritance to use.
 	 * @return the final element. Will be a copy if multiple inherited values
@@ -153,7 +153,7 @@ public abstract class InheritanceGovernor<T> {
 		/* Figuring out which of the three cases we need:
 		 * 1.) Full inheritance with versioning (will return a copied list)
 		 * 2.) Local-only data with versioning (will also return a copied list)
-		 * 3.) Local-only data without versioning (will return the currently active lists) 
+		 * 3.) Local-only data without versioning (will return the currently active lists)
 		 */
 		boolean needsInheritance = false;
 		boolean needsVersioning = false;
@@ -162,34 +162,34 @@ public abstract class InheritanceGovernor<T> {
 				needsInheritance = true;
 				needsVersioning = true;
 				break;
-				
+
 			case LOCAL_ONLY:
 				needsInheritance = false;
 				needsVersioning = true;
 				break;
-				
+
 			case AUTO:
 				needsInheritance = inheritanceLookupRequired(root);
 				needsVersioning = versioningRequired();
 				break;
 		}
-		
+
 		//Checking if we should abort early by returning the raw fields
 		if (!needsInheritance && !needsVersioning) {
 			return this.getRawField(root);
 		}
-		
+
 		if (!needsInheritance) {
 			return this.getVersionedField(
 					root, root.getUserDesiredVersion()
 			);
 		}
-		
+
 		//Retrieving the full scope of all parents and ourselves in order
 		List<InheritanceProject> scope =
 				getFullScopeOrdered(root, new HashSet<String>());
 		LinkedList<T> allFields = new LinkedList<T>();
-		
+
 		for (InheritanceProject ip : scope) {
 			//Fetch the version desired for this project
 			Long version = ip.getUserDesiredVersion();
@@ -199,25 +199,25 @@ public abstract class InheritanceGovernor<T> {
 				allFields.add(field);
 			}
 		}
-		
+
 		//Now, at the end, reduce the list to a single element
 		return reduceFromFullInheritance(allFields);
 	}
-	
+
 	private final List<InheritanceProject> getFullScopeOrdered(
 			InheritanceProject root, HashSet<String> seen) {
 		List<InheritanceProject> all = new LinkedList<InheritanceProject>();
 		if (root == null) { return all; }
-		
+
 		String name = root.getFullName();
 		if (seen.contains(name)) {
 			return all;
 		}
 		seen.add(name);
-		
+
 		List<InheritanceProject> priors = new LinkedList<InheritanceProject>();
 		List<InheritanceProject> latters = new LinkedList<InheritanceProject>();
-		
+
 		for (AbstractProjectReference apr : root.getParentReferences(orderMode)) {
 			if (apr == null) { continue; }
 			InheritanceProject ip = apr.getProject();
@@ -229,18 +229,18 @@ public abstract class InheritanceGovernor<T> {
 				latters.addAll(getFullScopeOrdered(ip, seen));
 			}
 		}
-		
+
 		all.addAll(0, priors);
 		all.add(root);
 		all.addAll(latters);
-		
+
 		return all;
 	}
-	
-	
-	
+
+
+
 	// === STATIC HELPER METHODS ===
-	
+
 	/**
 	 * This is a reduction function that is tasked to reduce the List&lt;T&gt;
 	 * that is generated through inheritance down to a single T.
@@ -285,17 +285,17 @@ public abstract class InheritanceGovernor<T> {
 		}
 		return list.peekLast();
 	}
-	
-	
+
+
 	/**
 	 * Simple helper function to use a merge as the default reduction.
 	 * <p>
 	 * Do note that the list is returned in-order of inheritance, with merges
 	 * being put back into the list at the location of the last definition.
 	 * <p>
-	 * It will not de-duplicated the resulting list beyond doing the merges 
+	 * It will not de-duplicated the resulting list beyond doing the merges
 	 * based on the {@link InheritanceSelector} extensions.
-	 * 
+	 *
 	 * @see #reduceFromFullInheritance(Deque)
 	 * @see #reduceByMerge(Deque, Class, InheritanceProject)
 	 * @param list
@@ -304,15 +304,15 @@ public abstract class InheritanceGovernor<T> {
 	protected static <R> List<R> reduceByMergeWithDuplicates(Deque<List<R>> list, Class<?> listType, InheritanceProject caller) {
 		List<R> merge = new LinkedList<R>();
 		if (list == null) { return merge; }
-		
+
 		for (Collection<R> sub : list) {
 			merge.addAll(sub);
 		}
-		
+
 		if (merge.isEmpty()) {
 			return merge;
 		}
-		
+
 		@SuppressWarnings("rawtypes")
 		ExtensionList<InheritanceSelector> isLst = InheritanceSelector.all();
 		for (InheritanceSelector<?> is : isLst) {
@@ -325,7 +325,7 @@ public abstract class InheritanceGovernor<T> {
 		}
 		return merge;
 	}
-	
+
 	/**
 	 * Simple helper function to use a merge as the default reduction.
 	 * <p>
@@ -334,14 +334,14 @@ public abstract class InheritanceGovernor<T> {
 	 * <p>
 	 * In contrast to {@link #reduceByMergeWithDuplicates(Deque, Class, InheritanceProject)},
 	 * it will remove duplicate entries based on the class-objects.
-	 * 
+	 *
 	 * @see #reduceFromFullInheritance(Deque)
 	 * @param list
 	 * @return
 	 */
 	protected static <R> List<R> reduceByMerge(Deque<List<R>> list, Class<?> listType, InheritanceProject caller) {
 		List<R> merge = reduceByMergeWithDuplicates(list, listType, caller);
-		
+
 		//Remove duplicated entries and select the LAST one of each
 		LinkedList<R> out = new LinkedList<R>(merge);
 		Set<Class<?>> seen = new HashSet<Class<?>>();
@@ -357,23 +357,23 @@ public abstract class InheritanceGovernor<T> {
 		}
 		return out;
 	}
-	
+
 	protected static <R extends Describable<R>> DescribableList<R, Descriptor<R>> reduceDescribableByMerge(
 			Deque<DescribableList<R, Descriptor<R>>> list) {
 		if (list == null) {
 			return new DescribableList<R, Descriptor<R>>(NOOP);
 		}
-		
+
 		List<R> merge = new LinkedList<R>();
 		for (DescribableList<R, Descriptor<R>> sub : list) {
 			for (R item : sub) {
 				merge.add(item);
 			}
 		}
-		
+
 		return new DescribableList<R, Descriptor<R>>(NOOP, merge);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	protected static <R> List<R> castToList(Object o) {
 		try {
@@ -385,7 +385,7 @@ public abstract class InheritanceGovernor<T> {
 			return null;
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	protected static <R extends Describable<R>> DescribableList<R, Descriptor<R>> castToDescribableList(Object o) {
 		try {
@@ -402,7 +402,7 @@ public abstract class InheritanceGovernor<T> {
 	public static boolean inheritanceLookupRequired(InheritanceProject root) {
 		return inheritanceLookupRequired(root, false);
 	}
-	
+
 	public static boolean inheritanceLookupRequired(InheritanceProject root, boolean forcedInherit) {
 		//In a cyclic dependency, any form of inheritance would be ill-advised
 		try {
@@ -419,14 +419,14 @@ public abstract class InheritanceGovernor<T> {
 		 * 1.) The user wants to force inheritance
 		 * 2.) The project is transient and has no real own configuration
 		 * 3.) The project is called in the context of a build
-		 * 4.) The queue queries properties of the project 
+		 * 4.) The queue queries properties of the project
 		 */
-		
+
 		//Check forced inheritance or transience
 		if (forcedInherit || root.getIsTransient()) {
 			return true;
 		}
-		
+
 		//Checking the Stapler Request, because it is fast
 		StaplerRequest req = Stapler.getCurrentRequest();
 		if (req != null) {
@@ -440,7 +440,7 @@ public abstract class InheritanceGovernor<T> {
 				return true;
 			}
 		}
-		
+
 		//Check via expensive stack reflection
 		if (Reflection.calledFromClass(
 				Build.class, BuildCommand.class,
@@ -454,11 +454,11 @@ public abstract class InheritanceGovernor<T> {
 		) {
 			return true;
 		}
-		
+
 		//In all other cases, we don't require (or want) inheritance
 		return false;
 	}
-	
+
 	/**
 	 * This method uses reflection to tell whether the current state means
 	 * that versioning is needed or not.
@@ -470,14 +470,14 @@ public abstract class InheritanceGovernor<T> {
 	 * Do note that both {@link #inheritanceLookupRequired()} and this
 	 * function need to return false for the raw lists to be returned by
 	 * {@link #getVersionedObjectsFrom(InheritanceProject, String)}.
-	 * 
+	 *
 	 * @return true if versioning for the various fields is needed.
 	 */
 	protected static boolean versioningRequired() {
 		if (Reflection.calledFromMethod(Project.class, "submit")) {
 			return false;
 		}
-		
+
 		//In all other cases, always return true
 		return true;
 	}
