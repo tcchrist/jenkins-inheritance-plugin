@@ -1536,8 +1536,9 @@ public class InheritanceProject	extends Project<InheritanceProject, InheritanceB
 		
 		//TODO: Check if this ACL check actually does the same as the commented
 		//instruction below
-		ACL acl = Jenkins.getInstance().getACL();
-		acl.checkPermission(BUILD);
+		//ACL acl = Jenkins.getInstance().getACL();
+		//acl.checkPermission(BUILD);
+                super.checkPermission(BUILD);
 		//BuildAuthorizationToken.checkPermission(this, getAuthToken(), req, rsp);
 
 		// if a build is parameterized, let that take over
